@@ -18,7 +18,7 @@ class AppCRM(ctk.CTk):
         self.menu_lateral = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.menu_lateral.grid(row=0, column=0, sticky="nsew")
         
-        self.lbl_logo = ctk.CTkLabel(self.menu_lateral, text="GYMSA CRM", font=ctk.CTkFont(size=20, weight="bold"))
+        self.lbl_logo = ctk.CTkLabel(self.menu_lateral, text="CRM DE GESTION", font=ctk.CTkFont(size=20, weight="bold"))
         self.lbl_logo.pack(pady=20)
 
         self.btn_listar = ctk.CTkButton(self.menu_lateral, text="Listar Clientes", command=self.cargar_datos)
