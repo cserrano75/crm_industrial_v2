@@ -1,6 +1,7 @@
-from database import obtener_conexion
-from fpdf import FPDF # Importamos la librería de PDF
+import os
 from datetime import datetime # <--- NUEVO IMPORT para la fecha
+from fpdf import FPDF
+from database import obtener_conexion
 
 class GestorClientes:
     """Clase encargada EXCLUSIVAMENTE de hablar con MySQL"""
