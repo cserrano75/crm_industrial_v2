@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from database import obtener_conexion  # Importamos tu función de ayer
 
+
 class AppCRM(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -46,5 +47,6 @@ class AppCRM(ctk.CTk):
             self.txt_output.insert("end", "❌ No se pudo conectar a la base de datos.")
 
 if __name__ == "__main__":
+    
     app = AppCRM()
     app.mainloop()
