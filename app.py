@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from crm_backend import GestorClientes  # <--- IMPORTAMOS AL EXPERTO
+import os # Pon esto al principio del archivo
 
 class AppCRM(ctk.CTk):
     def __init__(self):
@@ -25,6 +26,12 @@ class AppCRM(ctk.CTk):
         ctk.CTkButton(self.menu_lateral, text="Nuevo Registro", command=self.mostrar_formulario).pack(padx=20, pady=10)
         ctk.CTkButton(self.menu_lateral, text="Editar Cliente", command=self.preparar_edicion).pack(padx=20, pady=10)
         ctk.CTkButton(self.menu_lateral, text="Borrar Cliente", fg_color="#A30000", command=self.eliminar_cliente).pack(padx=20, pady=10)
+
+# Antes decía command=self.descargar_pdf
+        self.btn_pdf = ctk.CTkButton(self.menu_lateral, text="Generar PDF", 
+                             fg_color="#5D3FD3", 
+                             command=self.generar_reporte) # <--- Nombre normalizado
+        self.btn_pdf.pack(padx=20, pady=10)
 
         # 4. Área de Contenido Central
         self.area_principal = ctk.CTkFrame(self, corner_radius=10)
@@ -106,6 +113,20 @@ class AppCRM(ctk.CTk):
     def limpiar_pantalla(self):
         for widget in self.area_principal.winfo_children():
             widget.destroy()
+
+# Antes decía def descargar_pdf(self):
+    def generar_reporte(self): # <--- Ahora coincide con el comando del botón
+        # 1. Desactivamos el botón para evitar clics dobles
+        self.btn_pdf.configure(state="disabled", text="Generando...")
+        if GestorClientes.generar_reporte_pdf():
+            print("📁 Reporte generado.")
+            # ESTO ABRE EL ARCHIVO AUTOMÁTICAMENTE:
+            os.startfile("Reporte_Clientes.pdf") 
+        else:
+            print("❌ Error")
+            
+        # 3. Lo reactivamos al terminar
+        self.btn_pdf.configure(state="normal", text="Generar PDF")
 
 if __name__ == "__main__":
     app = AppCRM()

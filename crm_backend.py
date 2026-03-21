@@ -1,4 +1,6 @@
 from database import obtener_conexion
+from fpdf import FPDF # Importamos la librería de PDF
+from datetime import datetime # <--- NUEVO IMPORT para la fecha
 
 class GestorClientes:
     """Clase encargada EXCLUSIVAMENTE de hablar con MySQL"""
@@ -58,3 +60,74 @@ class GestorClientes:
             con.close()
             return True
         return False
+    
+    @staticmethod
+    def generar_reporte_pdf(nombre_archivo="Reporte_Clientes.pdf"):
+        try:
+            # 1. Preparar Datos Dinámicos
+            clientes = GestorClientes.listar()
+            fecha_actual = datetime.now().strftime("%d/%m/%Y") # Formato: DD/MM/AAAA HH:MM
+            ruta_logo = "logo_empresa.png" # <--- Ruta relativa (dinámica por archivo)
+            
+            pdf = FPDF()
+            pdf.add_page()
+            
+            # 2. ENCABEZADO (Logo y Fecha)
+            # --- Arriba a la Derecha: LA FECHA (Tamaño mínimo 8)
+            pdf.set_font("Arial", "I", 8) # "I" de Itálica (cursiva) para que se vea sutil
+            # Obtenemos el ancho de la página para alinear a la derecha
+            ancho_pagina = pdf.w - 2 * pdf.l_margin
+            pdf.cell(ancho_pagina, 5, f"Generado: {fecha_actual}", ln=True, align="R")
+            
+            # --- Arriba a la Izquierda: EL LOGO (Dinámico)
+            # Verificamos si el archivo de logo existe para evitar errores
+            if os.path.exists(ruta_logo):
+                # pdf.image(ruta, x, y, ancho, alto)
+                # Lo ponemos en la esquina superior izquierda (x=10, y=10) con ancho 30
+                pdf.image(ruta_logo, 10, 10, 30) 
+            else:
+                print(f"⚠️ Aviso: No se encontró el archivo de logo en '{ruta_logo}'. Se generará sin logo.")
+
+            pdf.ln(20) # Salto de línea grande para bajar después del logo/fecha
+
+            # 3. CUERPO DEL REPORTE (Título y Tabla)
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(0, 10, "REPORTE ESTRATÉGICO DE CLIENTES", ln=True, align="C")
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 10, "CRM INDUSTRIAL - GESTIÓN B2B", ln=True, align="C")
+            pdf.ln(10)
+
+            # ENCABEZADOS DE TABLA (con estilo)
+            pdf.set_font("Arial", "B", 11)
+            pdf.set_fill_color(0, 92, 153) # Azul corporativo (como el de tu botón Editar)
+            pdf.set_text_color(255, 255, 255) # Texto blanco
+            pdf.cell(20, 10, "ID", border=1, fill=True, align="C")
+            pdf.cell(85, 10, "NOMBRE DEL CONTACTO", border=1, fill=True, align="C")
+            pdf.cell(85, 10, "EMPRESA / FAENA", border=1, fill=True, align="C")
+            pdf.ln()
+
+            # DATOS DE LOS CLIENTES (con estilo alternado)
+            pdf.set_font("Arial", "", 11)
+            pdf.set_text_color(0, 0, 0) # Texto negro
+            gris_alterno = False
+            
+            for (id_c, nombre, empresa) in clientes:
+                # Efecto cebra para lectura ISO
+                if gris_alterno:
+                    pdf.set_fill_color(240, 240, 240) # Gris muy suave
+                else:
+                    pdf.set_fill_color(255, 255, 255) # Blanco
+                
+                pdf.cell(20, 10, str(id_c), border=1, fill=True, align="C")
+                # Limitar texto largo para que no se superponga
+                pdf.cell(85, 10, str(nombre)[:35], border=1, fill=True) 
+                pdf.cell(85, 10, str(empresa)[:35], border=1, fill=True)
+                pdf.ln()
+                gris_alterno = not gris_alterno # Cambiar color para la siguiente fila
+
+            # 4. FINALIZAR Y GUARDAR
+            pdf.output(nombre_archivo)
+            return True
+        except Exception as e:
+            print(f"❌ Error detallado en PDF: {e}")
+            return False
