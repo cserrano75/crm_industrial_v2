@@ -78,14 +78,14 @@ class GestorClientes:
             pdf.set_font("Arial", "I", 8) # "I" de Itálica (cursiva) para que se vea sutil
             # Obtenemos el ancho de la página para alinear a la derecha
             ancho_pagina = pdf.w - 2 * pdf.l_margin
-            pdf.cell(ancho_pagina, 5, f"Generado: {fecha_actual}", ln=True, align="R")
+            pdf.cell(ancho_pagina, 5, f"Fecha Reporte: {fecha_actual}", ln=True, align="R")
             
             # --- Arriba a la Izquierda: EL LOGO (Dinámico)
             # Verificamos si el archivo de logo existe para evitar errores
             if os.path.exists(ruta_logo):
                 # pdf.image(ruta, x, y, ancho, alto)
                 # Lo ponemos en la esquina superior izquierda (x=10, y=10) con ancho 30
-                pdf.image(ruta_logo, 10, 10, 30) 
+                pdf.image(ruta_logo, 10, 10, 20) 
             else:
                 print(f"⚠️ Aviso: No se encontró el archivo de logo en '{ruta_logo}'. Se generará sin logo.")
 
