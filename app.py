@@ -39,6 +39,18 @@ class AppCRM(ctk.CTk):
                                           command=self.ejecutar_importacion)
         self.btn_importar.pack(padx=20, pady=10)
 
+        # 1. Agregamos un Label vacío que "empuja" todo hacia abajo
+        self.espaciador = ctk.CTkLabel(self.menu_lateral, text="")
+        self.espaciador.pack(expand=True, fill="both") 
+
+        # 2. El botón de salida técnica
+        self.btn_salir = ctk.CTkButton(self.menu_lateral, 
+                                      text="Cerrar Sistema", 
+                                      fg_color="#A30000",      # Rojo oscuro (Alerta)
+                                      hover_color="#7A0000",   # Rojo más profundo al pasar el mouse
+                                      command=self.salir_app)
+        self.btn_salir.pack(padx=20, pady=20, side="bottom")
+
         # 4. Área de Contenido Central
         self.area_principal = ctk.CTkFrame(self, corner_radius=10)
         self.area_principal.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
@@ -141,7 +153,11 @@ class AppCRM(ctk.CTk):
             self.mostrar_tabla() # Refrescamos la vista para ver los nuevos clientes
         else:
             print("❌ No se pudo importar el archivo. Verifica que se llame 'clientes.xlsx'")
-            
+
+    def salir_app(self):
+        print("⚙️ Cerrando procesos y base de datos...")
+        self.destroy() # Cierra la ventana de forma elegante
+        
 if __name__ == "__main__":
     app = AppCRM()
     app.mainloop()
