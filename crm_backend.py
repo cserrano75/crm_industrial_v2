@@ -1,7 +1,9 @@
+import matplotlib.pyplot as plt # <--- NUEVO: Para los gráficos
 import os
 from datetime import datetime # <--- NUEVO IMPORT para la fecha
 from fpdf import FPDF
 from database import obtener_conexion
+import pandas as pd # Para el Excel
 
 class GestorClientes:
     """Clase encargada EXCLUSIVAMENTE de hablar con MySQL"""
@@ -104,7 +106,7 @@ class GestorClientes:
             pdf.set_text_color(255, 255, 255) # Texto blanco
             pdf.cell(20, 10, "ID", border=1, fill=True, align="C")
             pdf.cell(85, 10, "NOMBRE DEL CONTACTO", border=1, fill=True, align="C")
-            pdf.cell(85, 10, "EMPRESA / FAENA", border=1, fill=True, align="C")
+            pdf.cell(85, 10, "EMPRESA", border=1, fill=True, align="C")
             pdf.ln()
 
             # DATOS DE LOS CLIENTES (con estilo alternado)
@@ -126,9 +128,74 @@ class GestorClientes:
                 pdf.ln()
                 gris_alterno = not gris_alterno # Cambiar color para la siguiente fila
 
+                pdf.ln(10) # Espacio después de la tabla
+
+            # 3.5 INSERTAR GRÁFICO ESTADÍSTICO
+            ruta_img = GestorClientes.generar_grafico_empresas()
+            if ruta_img and os.path.exists(ruta_img):
+                # Centramos el gráfico (Ancho 140 para que se vea bien)
+                pdf.image(ruta_img, x=35, y=None, w=140)
+                os.remove(ruta_img) # Borramos la imagen temporal por limpieza ISO
+
             # 4. FINALIZAR Y GUARDAR
             pdf.output(nombre_archivo)
             return True
         except Exception as e:
             print(f"❌ Error detallado en PDF: {e}")
             return False
+
+    @staticmethod
+    def importar_desde_excel(ruta_archivo="clientes.xlsx"):
+        try:
+            # 1. Leemos el Excel (Asumimos columnas: Nombre y Empresa)
+            df = pd.read_excel(ruta_archivo)
+            
+            # Limpieza básica: Quitamos espacios en blanco
+            df['Nombre'] = df['Nombre'].str.strip()
+            df['Empresa'] = df['Empresa'].str.strip()
+
+            con = obtener_conexion()
+            if con:
+                cursor = con.cursor()
+                # 2. Inserción masiva
+                for _, fila in df.iterrows():
+                    cursor.execute(
+                        "INSERT INTO clientes (nombre, empresa) VALUES (%s, %s)",
+                        (fila['Nombre'], fila['Empresa'])
+                    )
+                con.commit()
+                con.close()
+                return True
+            return False
+        except Exception as e:
+            print(f"❌ Error al importar Excel: {e}")
+            return False
+        
+    @staticmethod
+    def generar_grafico_empresas():
+        try:
+            con = obtener_conexion()
+            # Consultamos la cuenta de clientes por empresa
+            query = "SELECT empresa, COUNT(*) as total FROM clientes GROUP BY empresa"
+            df = pd.read_sql(query, con)
+            con.close()
+
+            if df.empty: return None
+
+            # Configuramos el gráfico
+            plt.figure(figsize=(6, 4)) # Tamaño del gráfico
+            plt.bar(df['empresa'], df['total'], color='#005C99') # Azul corporativo
+            plt.title('Distribución de Clientes por Empresa', fontsize=12, fontweight='bold')
+            plt.xlabel('Empresa')
+            plt.ylabel('Cantidad de Contactos')
+            plt.xticks(rotation=45, ha='right') # Rotamos nombres si son largos
+            plt.tight_layout() # Ajuste automático para que no se corte nada
+
+            # Guardamos el gráfico como imagen temporal
+            ruta_grafico = "temp_grafico.png"
+            plt.savefig(ruta_grafico)
+            plt.close() # Cerramos el gráfico para liberar memoria
+            return ruta_grafico
+        except Exception as e:
+            print(f"❌ Error al crear gráfico: {e}")
+            return None

@@ -27,11 +27,17 @@ class AppCRM(ctk.CTk):
         ctk.CTkButton(self.menu_lateral, text="Editar Cliente", command=self.preparar_edicion).pack(padx=20, pady=10)
         ctk.CTkButton(self.menu_lateral, text="Borrar Cliente", fg_color="#A30000", command=self.eliminar_cliente).pack(padx=20, pady=10)
 
-# Antes decía command=self.descargar_pdf
+        # Antes decía command=self.descargar_pdf
         self.btn_pdf = ctk.CTkButton(self.menu_lateral, text="Generar PDF", 
                              fg_color="#5D3FD3", 
                              command=self.generar_reporte) # <--- Nombre normalizado
         self.btn_pdf.pack(padx=20, pady=10)
+
+        # Boton Importar Excel
+        self.btn_importar = ctk.CTkButton(self.menu_lateral, text="Importar Excel", 
+                                          fg_color="#228B22", # Verde bosque profesional
+                                          command=self.ejecutar_importacion)
+        self.btn_importar.pack(padx=20, pady=10)
 
         # 4. Área de Contenido Central
         self.area_principal = ctk.CTkFrame(self, corner_radius=10)
@@ -128,6 +134,14 @@ class AppCRM(ctk.CTk):
         # 3. Lo reactivamos al terminar
         self.btn_pdf.configure(state="normal", text="Generar PDF")
 
+    def ejecutar_importacion(self):
+        # Llamamos al experto (Backend)
+        if GestorClientes.importar_desde_excel():
+            print("✅ Datos importados con éxito.")
+            self.mostrar_tabla() # Refrescamos la vista para ver los nuevos clientes
+        else:
+            print("❌ No se pudo importar el archivo. Verifica que se llame 'clientes.xlsx'")
+            
 if __name__ == "__main__":
     app = AppCRM()
     app.mainloop()
