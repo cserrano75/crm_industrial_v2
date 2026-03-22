@@ -21,6 +21,13 @@ class AppCRM(ctk.CTk):
         
         ctk.CTkLabel(self.menu_lateral, text="MENU CRM", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
 
+        # NUEVO: Etiqueta del Dólar
+        self.label_dolar = ctk.CTkLabel(self.menu_lateral, 
+                                        text="Cargando dólar...", 
+                                        font=("Arial", 12, "italic"),
+                                        text_color="#F1C40F") # Un amarillo suave para que resalte
+        self.label_dolar.pack(padx=20, pady=5)
+
         # BOTONES: Todos llaman a funciones de la Interfaz
         ctk.CTkButton(self.menu_lateral, text="Listar Clientes", command=self.mostrar_tabla).pack(padx=20, pady=10)
         ctk.CTkButton(self.menu_lateral, text="Nuevo Registro", command=self.mostrar_formulario).pack(padx=20, pady=10)
@@ -56,6 +63,7 @@ class AppCRM(ctk.CTk):
         self.area_principal.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
         self.mostrar_tabla() # Arrancamos viendo la tabla
+        self.actualizar_indicadores()
 
     # --- FUNCIONES DE NAVEGACIÓN (INTERFAZ) ---
 
@@ -132,7 +140,7 @@ class AppCRM(ctk.CTk):
         for widget in self.area_principal.winfo_children():
             widget.destroy()
 
-# Antes decía def descargar_pdf(self):
+    # Antes decía def descargar_pdf(self):
     def generar_reporte(self): # <--- Ahora coincide con el comando del botón
         # 1. Desactivamos el botón para evitar clics dobles
         self.btn_pdf.configure(state="disabled", text="Generando...")
@@ -157,6 +165,11 @@ class AppCRM(ctk.CTk):
     def salir_app(self):
         print("⚙️ Cerrando procesos y base de datos...")
         self.destroy() # Cierra la ventana de forma elegante
+
+    def actualizar_indicadores(self):
+        # Le pedimos al experto (Backend) que traiga el dato
+        info_dolar = GestorClientes.obtener_dolar_dia()
+        self.label_dolar.configure(text=info_dolar)
         
 if __name__ == "__main__":
     app = AppCRM()

@@ -4,6 +4,7 @@ from datetime import datetime # <--- NUEVO IMPORT para la fecha
 from fpdf import FPDF
 from database import obtener_conexion
 import pandas as pd # Para el Excel
+import requests # <--- Nuevo Import
 
 class GestorClientes:
     """Clase encargada EXCLUSIVAMENTE de hablar con MySQL"""
@@ -199,3 +200,17 @@ class GestorClientes:
         except Exception as e:
             print(f"❌ Error al crear gráfico: {e}")
             return None
+
+    @staticmethod
+    def obtener_dolar_dia():
+        try:
+            url = "https://mindicador.cl/api/dolar"
+            response = requests.get(url, timeout=5)
+            data = response.json()
+            valor_dolar = data['serie'][0]['valor']
+            fecha = data['serie'][0]['fecha'][:10] # Tomamos solo AAAA-MM-DD
+            return f"Dólar hoy: ${valor_dolar} ({fecha})"
+        except Exception as e:
+            print(f"⚠️ No se pudo conectar a mindicador.cl: {e}")
+            return "Dólar: No disponible"
+        
