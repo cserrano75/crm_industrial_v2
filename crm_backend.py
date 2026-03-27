@@ -10,15 +10,21 @@ class GestorClientes:
     """Clase encargada EXCLUSIVAMENTE de hablar con MySQL"""
     
     @staticmethod
-    def listar():
+    def listar(filtro=""):
         con = obtener_conexion()
-        if con:
-            cursor = con.cursor()
+        cursor = con.cursor()
+        
+        if filtro:
+            # Buscamos coincidencias en nombre O empresa
+            query = "SELECT id, nombre, empresa FROM clientes WHERE nombre LIKE %s OR empresa LIKE %s"
+            val = (f"%{filtro}%", f"%{filtro}%")
+            cursor.execute(query, val)
+        else:
             cursor.execute("SELECT id, nombre, empresa FROM clientes")
-            datos = cursor.fetchall()
-            con.close()
-            return datos
-        return []
+            
+        datos = cursor.fetchall()
+        con.close()
+        return datos
 
     @staticmethod
     def guardar(nombre, empresa):

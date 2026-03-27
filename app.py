@@ -22,6 +22,7 @@ class AppCRM(ctk.CTk):
         
         ctk.CTkLabel(self.menu_lateral, text="MENU CRM", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
 
+        
         # NUEVO: Etiqueta del Dólar
         self.label_dolar = ctk.CTkLabel(self.menu_lateral, 
                                         text="Cargando dólar...", 
@@ -63,20 +64,30 @@ class AppCRM(ctk.CTk):
         self.area_principal = ctk.CTkFrame(self, corner_radius=10)
         self.area_principal.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
+        # --- PARTE FIJA (Se crea una sola vez) ---
+        # 1. Título
+        ctk.CTkLabel(self.area_principal, text="Gestión de Clientes", font=("Arial", 20, "bold")).pack(pady=10)
+
+        # 2. Barra de Búsqueda
+        self.entry_busqueda = ctk.CTkEntry(self.area_principal, placeholder_text="🔍 Buscar...", width=400)
+        self.entry_busqueda.pack(pady=5)
+        self.entry_busqueda.bind("<KeyRelease>", self.ejecutar_busqueda)
+
+        # 3. Cuadro de Texto (Aquí es donde estaba el error: ¡Debemos crearlo aquí!)
+        self.txt_output = ctk.CTkTextbox(self.area_principal, width=550, height=300)
+        self.txt_output.pack(padx=20, pady=10, expand=True, fill="both")
         self.mostrar_tabla() # Arrancamos viendo la tabla
         self.actualizar_indicadores()
 
     # --- FUNCIONES DE NAVEGACIÓN (INTERFAZ) ---
 
-    def mostrar_tabla(self):
-        self.limpiar_pantalla()
-        ctk.CTkLabel(self.area_principal, text="Listado de Clientes", font=ctk.CTkFont(size=18, weight="bold")).pack(pady=10)
+    def mostrar_tabla(self, filtro=""):
+        # Solo limpiamos el área de resultados, no el buscador si está afuera
+        self.txt_output.delete("1.0", "end") 
+
+        # Pedimos los datos al Gestor
+        clientes = GestorClientes.listar(filtro) 
         
-        self.txt_output = ctk.CTkTextbox(self.area_principal, width=500, height=300)
-        self.txt_output.pack(padx=20, pady=10, expand=True, fill="both")
-        
-        # [LOGICA]: Pedimos los datos al Gestor
-        clientes = GestorClientes.listar()
         for (id_c, nombre, empresa) in clientes:
             self.txt_output.insert("end", f"🆔 {id_c} | 👤 {nombre} | 🏢 {empresa}\n")
 
@@ -93,7 +104,7 @@ class AppCRM(ctk.CTk):
 
     # --- FUNCIONES DE ACCIÓN (PUENTE ENTRE INTERFAZ Y LOGICA) ---
 
-def validar_y_guardar(self):
+    def validar_y_guardar(self):
         # 1. Capturamos y "limpiamos" los datos (Quita espacios extras)
         n = self.ent_nombre.get().strip()
         e = self.ent_empresa.get().strip()
@@ -118,7 +129,10 @@ def validar_y_guardar(self):
             # Si el GestorClientes.guardar falló (ej: se cayó la DB)
             messagebox.showerror("Error", "No se pudo guardar en la Base de Datos.")
 
-
+    def ejecutar_busqueda(self, event=None):
+        termino = self.entry_busqueda.get()
+        # Llamamos a mostrar_tabla pero pasándole el filtro
+        self.mostrar_tabla(filtro=termino)
 
     def eliminar_cliente(self):
         dialogo = ctk.CTkInputDialog(text="ID a borrar:", title="Borrar")
