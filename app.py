@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from crm_backend import GestorClientes  # <--- IMPORTAMOS AL EXPERTO
 import os # Pon esto al principio del archivo
+from tkinter import messagebox # <--- Herramienta de alertas estándar
 
 class AppCRM(ctk.CTk):
     def __init__(self):
@@ -92,15 +93,32 @@ class AppCRM(ctk.CTk):
 
     # --- FUNCIONES DE ACCIÓN (PUENTE ENTRE INTERFAZ Y LOGICA) ---
 
-    def validar_y_guardar(self):
-        n = self.ent_nombre.get()
-        e = self.ent_empresa.get()
-        if n and e:
-            # [LOGICA]: El Gestor hace el INSERT
-            if GestorClientes.guardar(n, e):
-                self.mostrar_tabla()
+def validar_y_guardar(self):
+        # 1. Capturamos y "limpiamos" los datos (Quita espacios extras)
+        n = self.ent_nombre.get().strip()
+        e = self.ent_empresa.get().strip()
+
+        # 2. AUDITORÍA: Si cualquiera de los dos está vacío...
+        if not n or not e:
+            messagebox.showwarning("Faltan Datos", "Por favor, completa Nombre y Empresa.")
+            return # Detiene la ejecución aquí mismo
+
+        # 3. EJECUCIÓN: Si pasó la auditoría, llamamos al Backend
+        if GestorClientes.guardar(n, e):
+            # 4. FEEDBACK: Avisamos al usuario que todo salió bien
+            messagebox.showinfo("Éxito", f"Cliente {n} guardado correctamente.")
+            
+            # 5. LIMPIEZA: Dejamos el formulario listo para el próximo cliente
+            self.ent_nombre.delete(0, 'end')
+            self.ent_empresa.delete(0, 'end')
+            
+            # 6. ACTUALIZACIÓN: Refrescamos la vista de la tabla
+            self.mostrar_tabla()
         else:
-            print("Faltan datos")
+            # Si el GestorClientes.guardar falló (ej: se cayó la DB)
+            messagebox.showerror("Error", "No se pudo guardar en la Base de Datos.")
+
+
 
     def eliminar_cliente(self):
         dialogo = ctk.CTkInputDialog(text="ID a borrar:", title="Borrar")
