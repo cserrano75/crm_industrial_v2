@@ -219,4 +219,21 @@ class GestorClientes:
         except Exception as e:
             print(f"⚠️ No se pudo conectar a mindicador.cl: {e}")
             return "Dólar: No disponible"
+
+    @staticmethod
+    def obtener_indicadores():
+        try:
+            # Consultamos la API (Trae todos los indicadores del día)
+            url = "https://mindicador.cl/api"
+            response = requests.get(url, timeout=5)
+            datos = response.json()
+
+            # Extraemos Dólar y UF
+            dolar = datos["dolar"]["valor"]
+            uf = datos["uf"]["valor"]
+            
+            return dolar, uf
+        except Exception as e:
+            # Si falla la API, devolvemos ceros para no romper la App
+            return 0, 0
         

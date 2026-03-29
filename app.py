@@ -29,9 +29,15 @@ class AppCRM(ctk.CTk):
                      font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
 
         # Indicadores Financieros (API en Tiempo Real)
-        self.label_dolar = ctk.CTkLabel(self.menu_lateral, text="Cargando dólar...", 
-                                        font=("Arial", 12, "italic"), text_color="#F1C40F")
-        self.label_dolar.pack(padx=20, pady=(0, 20))
+        # Etiqueta Dólar (Color Negro para mejor lectura)
+        self.label_dolar = ctk.CTkLabel(self.menu_lateral, text="Dólar: Cargando...", 
+                                        font=("Arial", 12, "bold"), text_color="black")
+        self.label_dolar.pack(padx=20, pady=(0, 2))
+
+        # Etiqueta UF (Color Negro)
+        self.label_uf = ctk.CTkLabel(self.menu_lateral, text="UF: Cargando...", 
+                                     font=("Arial", 12, "bold"), text_color="black")
+        self.label_uf.pack(padx=20, pady=(0, 20))
 
         # --- SECCIÓN DE BOTONES (ACCIONES) ---
         # Listado y Búsqueda
@@ -210,9 +216,16 @@ class AppCRM(ctk.CTk):
         self.destroy() # Cierra la ventana de forma elegante
 
     def actualizar_indicadores(self):
-        # Le pedimos al experto (Backend) que traiga el dato
-        info_dolar = GestorClientes.obtener_dolar_dia()
-        self.label_dolar.configure(text=info_dolar)
+        # Llamamos al backend para obtener ambos valores
+        valor_dolar, valor_uf = GestorClientes.obtener_indicadores()
+        
+        if valor_dolar > 0 and valor_uf > 0:
+            # Formateamos con separador de miles para Chile
+            self.label_dolar.configure(text=f"Dólar: ${valor_dolar:,.2f}")
+            self.label_uf.configure(text=f"UF: ${valor_uf:,.2f}")
+        else:
+            self.label_dolar.configure(text="Dólar: Sin conexión")
+            self.label_uf.configure(text="UF: Sin conexión")
         
 if __name__ == "__main__":
     app = AppCRM()
