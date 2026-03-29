@@ -40,6 +40,12 @@ class AppCRM(ctk.CTk):
         self.label_uf.pack(padx=20, pady=(0, 20))
 
         # --- SECCIÓN DE BOTONES (ACCIONES) ---
+        # Botón para abrir la Calculadora
+        self.btn_calc = ctk.CTkButton(self.menu_lateral, text="🧮 Calculadora Express", 
+                                      fg_color="#34495E", # Un gris azulado sobrio
+                                      command=self.abrir_calculadora)
+        self.btn_calc.pack(padx=20, pady=10)
+
         # Listado y Búsqueda
         ctk.CTkButton(self.menu_lateral, text="Listar Clientes", 
                       command=self.mostrar_tabla).pack(padx=20, pady=10)
@@ -227,6 +233,49 @@ class AppCRM(ctk.CTk):
             self.label_dolar.configure(text="Dólar: Sin conexión")
             self.label_uf.configure(text="UF: Sin conexión")
         
+    def abrir_calculadora(self):
+        # 1. Crear la ventana emergente
+        ventana_calc = ctk.CTkToplevel(self)
+        ventana_calc.title("Calculadora de Conversión Industrial")
+        ventana_calc.geometry("400x350")
+        ventana_calc.after(100, lambda: ventana_calc.focus_force()) # Asegura que aparezca al frente
+
+        # 2. Obtener valores actuales (limpiando el texto de los labels)
+        try:
+            # Extraemos solo los números de los labels que ya tenemos
+            dolar_actual = float(self.label_dolar.cget("text").split('$')[1].replace(',', ''))
+            uf_actual = float(self.label_uf.cget("text").split('$')[1].replace(',', ''))
+        except:
+            messagebox.showerror("Error", "No hay datos de indicadores disponibles.")
+            ventana_calc.destroy()
+            return
+
+        # 3. Interfaz de la Calculadora
+        ctk.CTkLabel(ventana_calc, text="Monto a Convertir:", font=("Arial", 14, "bold")).pack(pady=10)
+        
+        ent_monto = ctk.CTkEntry(ventana_calc, placeholder_text="Ingrese valor...", width=200)
+        ent_monto.pack(pady=5)
+
+        lbl_resultado = ctk.CTkLabel(ventana_calc, text="Resultados aparecerán aquí", font=("Arial", 12))
+        lbl_resultado.pack(pady=20)
+
+        def calcular():
+            try:
+                monto = float(ent_monto.get().replace(',', '.'))
+                res_dolar = monto * dolar_actual
+                res_uf = monto * uf_actual
+                
+                texto = (f"Monto ingresado: {monto:,.2f}\n\n"
+                         f"💵 En Pesos (Dólar): ${res_dolar:,.0f} CLP\n"
+                         f"🏗️ En Pesos (UF): ${res_uf:,.0f} CLP")
+                
+                lbl_resultado.configure(text=texto, text_color="black")
+            except:
+                messagebox.showwarning("Error", "Ingrese un número válido.")
+
+        # Botón de cálculo dentro de la ventana
+        ctk.CTkButton(ventana_calc, text="Convertir a CLP", command=calcular).pack(pady=10)
+
 if __name__ == "__main__":
     app = AppCRM()
     app.mainloop()
