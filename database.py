@@ -10,7 +10,7 @@ def obtener_conexion():
             database="matriz_proyectos"
         )
         if conexion.is_connected():
-            print("✅ Conexión exitosa a la base de datos")
+            # print("✅ Conexión exitosa a la base de datos")
             return conexion
             
     except Exception as e:

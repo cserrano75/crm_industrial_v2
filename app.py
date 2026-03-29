@@ -7,77 +7,88 @@ class AppCRM(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # 1. Configuración de la Ventana
+        # ==========================================
+        # 1. CONFIGURACIÓN ESTRUCTURAL (EL CHASIS)
+        # ==========================================
         self.title("Sistema de Gestión B2B - CRM Industrial")
-        self.geometry("800x500")
+        self.geometry("900x600") # Aumenté un poco el ancho para comodidad
         ctk.set_appearance_mode("light")
 
-        # 2. Diseño del Layout
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        # Configuración de proporciones (Layout)
+        self.grid_columnconfigure(1, weight=1) # El área derecha crece
+        self.grid_rowconfigure(0, weight=1)    # Toda la altura disponible
 
-        # 3. Menú Lateral
-        self.menu_lateral = ctk.CTkFrame(self, width=200, corner_radius=0)
+        # ==========================================
+        # 2. PANEL LATERAL (Navegación y Estados)
+        # ==========================================
+        self.menu_lateral = ctk.CTkFrame(self, width=220, corner_radius=0)
         self.menu_lateral.grid(row=0, column=0, sticky="nsew")
         
-        ctk.CTkLabel(self.menu_lateral, text="MENU CRM", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+        # Identificador del Sistema
+        ctk.CTkLabel(self.menu_lateral, text="MENU CRM", 
+                     font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
 
+        # Indicadores Financieros (API en Tiempo Real)
+        self.label_dolar = ctk.CTkLabel(self.menu_lateral, text="Cargando dólar...", 
+                                        font=("Arial", 12, "italic"), text_color="#F1C40F")
+        self.label_dolar.pack(padx=20, pady=(0, 20))
+
+        # --- SECCIÓN DE BOTONES (ACCIONES) ---
+        # Listado y Búsqueda
+        ctk.CTkButton(self.menu_lateral, text="Listar Clientes", 
+                      command=self.mostrar_tabla).pack(padx=20, pady=10)
         
-        # NUEVO: Etiqueta del Dólar
-        self.label_dolar = ctk.CTkLabel(self.menu_lateral, 
-                                        text="Cargando dólar...", 
-                                        font=("Arial", 12, "italic"),
-                                        text_color="#F1C40F") # Un amarillo suave para que resalte
-        self.label_dolar.pack(padx=20, pady=5)
+        # Operaciones CRUD (Crear, Editar, Borrar)
+        ctk.CTkButton(self.menu_lateral, text="Nuevo Registro", 
+                      command=self.mostrar_formulario).pack(padx=20, pady=10)
+        ctk.CTkButton(self.menu_lateral, text="Editar Cliente", 
+                      command=self.preparar_edicion).pack(padx=20, pady=10)
+        ctk.CTkButton(self.menu_lateral, text="Borrar Cliente", fg_color="#A30000", 
+                      command=self.eliminar_cliente).pack(padx=20, pady=10)
 
-        # BOTONES: Todos llaman a funciones de la Interfaz
-        ctk.CTkButton(self.menu_lateral, text="Listar Clientes", command=self.mostrar_tabla).pack(padx=20, pady=10)
-        ctk.CTkButton(self.menu_lateral, text="Nuevo Registro", command=self.mostrar_formulario).pack(padx=20, pady=10)
-        ctk.CTkButton(self.menu_lateral, text="Editar Cliente", command=self.preparar_edicion).pack(padx=20, pady=10)
-        ctk.CTkButton(self.menu_lateral, text="Borrar Cliente", fg_color="#A30000", command=self.eliminar_cliente).pack(padx=20, pady=10)
-
-        # Antes decía command=self.descargar_pdf
+        # Herramientas de Reportabilidad y Datos
         self.btn_pdf = ctk.CTkButton(self.menu_lateral, text="Generar PDF", 
-                             fg_color="#5D3FD3", 
-                             command=self.generar_reporte) # <--- Nombre normalizado
+                                     fg_color="#5D3FD3", command=self.generar_reporte)
         self.btn_pdf.pack(padx=20, pady=10)
 
-        # Boton Importar Excel
         self.btn_importar = ctk.CTkButton(self.menu_lateral, text="Importar Excel", 
-                                          fg_color="#228B22", # Verde bosque profesional
-                                          command=self.ejecutar_importacion)
+                                          fg_color="#228B22", command=self.ejecutar_importacion)
         self.btn_importar.pack(padx=20, pady=10)
 
-        # 1. Agregamos un Label vacío que "empuja" todo hacia abajo
+        # Cierre de Sesión (Al pie del menú)
         self.espaciador = ctk.CTkLabel(self.menu_lateral, text="")
         self.espaciador.pack(expand=True, fill="both") 
 
-        # 2. El botón de salida técnica
-        self.btn_salir = ctk.CTkButton(self.menu_lateral, 
-                                      text="Cerrar Sistema", 
-                                      fg_color="#A30000",      # Rojo oscuro (Alerta)
-                                      hover_color="#7A0000",   # Rojo más profundo al pasar el mouse
-                                      command=self.salir_app)
+        self.btn_salir = ctk.CTkButton(self.menu_lateral, text="Cerrar Sistema", 
+                                       fg_color="#A30000", hover_color="#7A0000", 
+                                       command=self.salir_app)
         self.btn_salir.pack(padx=20, pady=20, side="bottom")
 
-        # 4. Área de Contenido Central
+        # ==========================================
+        # 3. ÁREA DE TRABAJO (CONTENIDO DINÁMICO)
+        # ==========================================
         self.area_principal = ctk.CTkFrame(self, corner_radius=10)
         self.area_principal.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
-        # --- PARTE FIJA (Se crea una sola vez) ---
-        # 1. Título
-        ctk.CTkLabel(self.area_principal, text="Gestión de Clientes", font=("Arial", 20, "bold")).pack(pady=10)
+        # Cabecera del área de trabajo
+        ctk.CTkLabel(self.area_principal, text="Gestión de Clientes", 
+                     font=("Arial", 22, "bold")).pack(pady=10)
 
-        # 2. Barra de Búsqueda
-        self.entry_busqueda = ctk.CTkEntry(self.area_principal, placeholder_text="🔍 Buscar...", width=400)
+        # Componente de Búsqueda (Fijo en la parte superior)
+        self.entry_busqueda = ctk.CTkEntry(self.area_principal, 
+                                           placeholder_text="🔍 Buscar por nombre o empresa...", width=450)
         self.entry_busqueda.pack(pady=5)
         self.entry_busqueda.bind("<KeyRelease>", self.ejecutar_busqueda)
 
-        # 3. Cuadro de Texto (Aquí es donde estaba el error: ¡Debemos crearlo aquí!)
-        self.txt_output = ctk.CTkTextbox(self.area_principal, width=550, height=300)
+        # Visor de Datos (Widget Multilínea)
+        self.txt_output = ctk.CTkTextbox(self.area_principal, width=550, height=350)
         self.txt_output.pack(padx=20, pady=10, expand=True, fill="both")
-        self.mostrar_tabla() # Arrancamos viendo la tabla
-        self.actualizar_indicadores()
+
+        # ==========================================
+        # 4. INICIALIZACIÓN DE DATOS
+        # ==========================================
+        self.mostrar_tabla()           # Carga inicial de la BD
+        self.actualizar_indicadores()  # Carga inicial del Dólar
 
     # --- FUNCIONES DE NAVEGACIÓN (INTERFAZ) ---
 
