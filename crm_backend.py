@@ -8,7 +8,6 @@ import requests # <--- Nuevo Import
 
 class GestorClientes:
     """Clase encargada EXCLUSIVAMENTE de hablar con MySQL"""
-    
     @staticmethod
     def listar(filtro=""):
         con = obtener_conexion()
@@ -237,3 +236,14 @@ class GestorClientes:
             # Si falla la API, devolvemos ceros para no romper la App
             return 0, 0
         
+    @staticmethod
+    def registrar_cotizacion(cliente_id, monto, dolar, uf, total):
+        con = obtener_conexion()
+        cursor = con.cursor()
+        query = """INSERT INTO historial_cotizaciones 
+                   (cliente_id, monto_original, valor_dolar, valor_uf, total_clp) 
+                   VALUES (%s, %s, %s, %s, %s)"""
+        val = (cliente_id, monto, dolar, uf, total)
+        cursor.execute(query, val)
+        con.commit()
+        con.close()

@@ -234,30 +234,68 @@ class AppCRM(ctk.CTk):
             self.label_uf.configure(text="UF: Sin conexión")
         
     def abrir_calculadora(self):
-        # 1. Crear la ventana emergente
         ventana_calc = ctk.CTkToplevel(self)
-        ventana_calc.title("Calculadora de Conversión Industrial")
-        ventana_calc.geometry("400x350")
-        ventana_calc.after(100, lambda: ventana_calc.focus_force()) # Asegura que aparezca al frente
+        ventana_calc.title("Calculadora de Cotización con Registro")
+        ventana_calc.geometry("450x450")
+        ventana_calc.after(100, lambda: ventana_calc.focus_force())
 
-        # 2. Obtener valores actuales (limpiando el texto de los labels)
+        # --- LÓGICA DE DATOS ---
         try:
-            # Extraemos solo los números de los labels que ya tenemos
+            # 1. Obtenemos indicadores actuales
             dolar_actual = float(self.label_dolar.cget("text").split('$')[1].replace(',', ''))
             uf_actual = float(self.label_uf.cget("text").split('$')[1].replace(',', ''))
-        except:
-            messagebox.showerror("Error", "No hay datos de indicadores disponibles.")
+            
+            # 2. Traemos la lista de clientes para el selector
+            lista_clientes = GestorClientes.listar() # Trae [id, nombre, empresa]
+            # Formateamos para que se vea: "ID - Nombre (Empresa)"
+            opciones_clientes = [f"{c[0]} - {c[1]} ({c[2]})" for c in lista_clientes]
+        except Exception as e:
+            messagebox.showerror("Error", f"Faltan datos base: {e}")
             ventana_calc.destroy()
             return
 
-        # 3. Interfaz de la Calculadora
-        ctk.CTkLabel(ventana_calc, text="Monto a Convertir:", font=("Arial", 14, "bold")).pack(pady=10)
+        # --- INTERFAZ DE LA CALCULADORA ---
+        ctk.CTkLabel(ventana_calc, text="1. Seleccione Cliente:", font=("Arial", 12, "bold")).pack(pady=(15, 0))
         
-        ent_monto = ctk.CTkEntry(ventana_calc, placeholder_text="Ingrese valor...", width=200)
+        # Selector de Clientes (Combobox)
+        combo_clientes = ctk.CTkComboBox(ventana_calc, values=opciones_clientes, width=350)
+        combo_clientes.pack(pady=5)
+
+        ctk.CTkLabel(ventana_calc, text="2. Monto a Cotizar (USD o UF):", font=("Arial", 12, "bold")).pack(pady=(15, 0))
+        ent_monto = ctk.CTkEntry(ventana_calc, placeholder_text="Ej: 1500.50", width=200)
         ent_monto.pack(pady=5)
 
-        lbl_resultado = ctk.CTkLabel(ventana_calc, text="Resultados aparecerán aquí", font=("Arial", 12))
+        lbl_resultado = ctk.CTkLabel(ventana_calc, text="Resultados aparecerán aquí", font=("Arial", 11))
         lbl_resultado.pack(pady=20)
+
+        # --- FUNCIÓN INTERNA DE CÁLCULO Y REGISTRO ---
+        def procesar_y_guardar():
+            try:
+                # Captura de datos
+                monto = float(ent_monto.get().replace(',', '.'))
+                seleccion = combo_clientes.get()
+                id_cliente = int(seleccion.split(" - ")[0]) # Extraemos el ID
+                
+                # Cálculos
+                res_dolar = monto * dolar_actual
+                res_uf = monto * uf_actual
+                
+                # Actualizamos la etiqueta visual
+                lbl_resultado.configure(text=f"💵 USD a CLP: ${res_dolar:,.0f}\n🏗️ UF a CLP: ${res_uf:,.0f}", text_color="blue")
+
+                # GUARDADO EN BD (Aquí usamos tu función registrar_cotizacion)
+                # Guardamos por defecto el cálculo en UF como total (puedes ajustarlo)
+                GestorClientes.registrar_cotizacion(id_cliente, monto, dolar_actual, uf_actual, res_uf)
+                
+                messagebox.showinfo("Éxito", "Cotización registrada en el historial del cliente.")
+            except ValueError:
+                messagebox.showwarning("Atención", "Por favor, ingrese un monto numérico válido.")
+            except Exception as e:
+                messagebox.showerror("Error de BD", f"No se pudo guardar: {e}")
+
+        # Botón Maestro
+        ctk.CTkButton(ventana_calc, text="Calcular y Registrar", 
+                      fg_color="#27AE60", command=procesar_y_guardar).pack(pady=10)
 
         def calcular():
             try:
