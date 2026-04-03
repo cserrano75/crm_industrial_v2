@@ -247,3 +247,20 @@ class GestorClientes:
         cursor.execute(query, val)
         con.commit()
         con.close()
+
+    @staticmethod
+    def obtener_historial():
+        con = obtener_conexion()
+        cursor = con.cursor()
+        # Unimos las dos tablas para traer el nombre del cliente
+        query = """
+            SELECT h.*, c.nombre 
+            FROM historial_cotizaciones h
+            INNER JOIN clientes c ON h.cliente_id = c.id
+            ORDER BY h.fecha_cotizacion DESC
+            LIMIT 50
+        """
+        cursor.execute(query)
+        datos = cursor.fetchall()
+        con.close()
+        return datos

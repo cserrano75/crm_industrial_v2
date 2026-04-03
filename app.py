@@ -2,6 +2,7 @@ import customtkinter as ctk
 from crm_backend import GestorClientes  # <--- IMPORTAMOS AL EXPERTO
 import os # Pon esto al principio del archivo
 from tkinter import messagebox # <--- Herramienta de alertas estándar
+from tkinter import ttk # Necesario para el Treeview
 
 class AppCRM(ctk.CTk):
     def __init__(self):
@@ -49,6 +50,9 @@ class AppCRM(ctk.CTk):
         # Listado y Búsqueda
         ctk.CTkButton(self.menu_lateral, text="Listar Clientes", 
                       command=self.mostrar_tabla).pack(padx=20, pady=10)
+        # Historial de Cotizaciones...
+        ctk.CTkButton(self.menu_lateral, text="Ver Historial Cotiz.", 
+                      fg_color="#34495E", command=self.ver_historial).pack(padx=20, pady=10)
         
         # Operaciones CRUD (Crear, Editar, Borrar)
         ctk.CTkButton(self.menu_lateral, text="Nuevo Registro", 
@@ -288,6 +292,9 @@ class AppCRM(ctk.CTk):
                 GestorClientes.registrar_cotizacion(id_cliente, monto, dolar_actual, uf_actual, res_uf)
                 
                 messagebox.showinfo("Éxito", "Cotización registrada en el historial del cliente.")
+
+                # --- LA CLAVE AQUÍ ---
+                ventana_calc.destroy() # Esto cierra la ventana automáticamente
             except ValueError:
                 messagebox.showwarning("Atención", "Por favor, ingrese un monto numérico válido.")
             except Exception as e:
@@ -313,6 +320,31 @@ class AppCRM(ctk.CTk):
 
         # Botón de cálculo dentro de la ventana
         ctk.CTkButton(ventana_calc, text="Convertir a CLP", command=calcular).pack(pady=10)
+
+    # Muestro el historial de cotizaciones del cliente
+    def ver_historial(self):
+        ventana_hist = ctk.CTkToplevel(self)
+        ventana_hist.title("Historial de Cotizaciones Realizadas")
+        ventana_hist.geometry("700x450")
+        ventana_hist.after(100, lambda: ventana_hist.focus_force())
+
+        # Widget de texto para mostrar los datos
+        txt_historial = ctk.CTkTextbox(ventana_hist, width=650, height=380)
+        txt_historial.pack(padx=20, pady=20)
+
+        # --- Lógica de Consulta al Backend ---
+        try:
+            # Necesitaremos crear esta función en el backend
+            registros = GestorClientes.obtener_historial() 
+            
+            txt_historial.insert("end", f"{'FECHA':<20} | {'CLIENTE':<20} | {'MONTO':<10} | {'TOTAL CLP':<15}\n")
+            txt_historial.insert("end", "-"*75 + "\n")
+
+            for r in registros:
+                # r[6] es fecha, r[7] es nombre cliente (si hacemos un JOIN)
+                txt_historial.insert("end", f"{str(r[6])[:16]:<20} | {r[7]:<20} | {r[2]:<10} | ${r[5]:,.0f}\n")
+        except Exception as e:
+            txt_historial.insert("end", f"Error al cargar historial: {e}")
 
 if __name__ == "__main__":
     app = AppCRM()
