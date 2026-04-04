@@ -12,7 +12,8 @@ class AppCRM(ctk.CTk):
         # 1. CONFIGURACIÓN ESTRUCTURAL (EL CHASIS)
         # ==========================================
         self.title("Sistema de Gestión B2B - CRM Industrial")
-        self.geometry("900x600") # Aumenté un poco el ancho para comodidad
+        # En lugar de geometry fijo, usamos nuestra nueva función
+        self.centrar_ventana(1000, 650) # Ajusta aquí el tamaño que prefieras
         ctk.set_appearance_mode("light")
 
         # Configuración de proporciones (Layout)
@@ -96,9 +97,40 @@ class AppCRM(ctk.CTk):
         self.entry_busqueda.pack(pady=5)
         self.entry_busqueda.bind("<KeyRelease>", self.ejecutar_busqueda)
 
-        # Visor de Datos (Widget Multilínea)
-        self.txt_output = ctk.CTkTextbox(self.area_principal, width=550, height=350)
-        self.txt_output.pack(padx=20, pady=10, expand=True, fill="both")
+        # Visor de Datos (Widget Multilínea) - Opcion de Lista plana
+        # self.txt_output = ctk.CTkTextbox(self.area_principal, width=550, height=350)
+        # self.txt_output.pack(padx=20, pady=10, expand=True, fill="both")
+
+        # Nueva opcion de visualizacion - Grilla
+        # Estilo para que la tabla no desentone con el modo oscuro/claro
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview", background="#D3D3D3", foreground="black", rowheight=25, fieldbackground="#D3D3D3")
+        style.map("Treeview", background=[('selected', '#347083')])
+
+        # Crear el contenedor de la tabla y el scroll
+        self.tabla_frame = ctk.CTkFrame(self.area_principal)
+        self.tabla_frame.pack(padx=20, pady=10, expand=True, fill="both")
+
+        # Definir Columnas
+        self.tabla = ttk.Treeview(self.tabla_frame, columns=("ID", "Nombre", "Empresa"), show='headings')
+        
+        # Encabezados
+        self.tabla.heading("ID", text="ID")
+        self.tabla.heading("Nombre", text="Nombre del Cliente")
+        self.tabla.heading("Empresa", text="Empresa / Proyecto")
+
+        # Ancho de columnas
+        self.tabla.column("ID", width=20, anchor="center")
+        self.tabla.column("Nombre", width=200, anchor="w")
+        self.tabla.column("Empresa", width=200, anchor="w")
+
+        self.tabla.pack(side="left", expand=True, fill="both")
+
+        # Scrollbar (Fundamental para listas largas)
+        scrollbar = ttk.Scrollbar(self.tabla_frame, orient="vertical", command=self.tabla.yview)
+        self.tabla.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
 
         # ==========================================
         # 4. INICIALIZACIÓN DE DATOS
@@ -108,15 +140,28 @@ class AppCRM(ctk.CTk):
 
     # --- FUNCIONES DE NAVEGACIÓN (INTERFAZ) ---
 
-    def mostrar_tabla(self, filtro=""):
-        # Solo limpiamos el área de resultados, no el buscador si está afuera
-        self.txt_output.delete("1.0", "end") 
+    # def mostrar_tabla(self, filtro=""):
+    #     # Solo limpiamos el área de resultados, no el buscador si está afuera
+    #     self.txt_output.delete("1.0", "end") 
 
-        # Pedimos los datos al Gestor
+    #     # Pedimos los datos al Gestor
+    #     clientes = GestorClientes.listar(filtro) 
+        
+    #     for (id_c, nombre, empresa) in clientes:
+    #         self.txt_output.insert("end", f"🆔 {id_c} | 👤 {nombre} | 🏢 {empresa}\n")
+
+    def mostrar_tabla(self, filtro=""):
+        # Limpiar tabla actual
+
+        for item in self.tabla.get_children():
+            self.tabla.delete(item)
+
+        # Traer datos
         clientes = GestorClientes.listar(filtro) 
         
-        for (id_c, nombre, empresa) in clientes:
-            self.txt_output.insert("end", f"🆔 {id_c} | 👤 {nombre} | 🏢 {empresa}\n")
+        for c in clientes:
+            # c[0]=id, c[1]=nombre, c[2]=empresa
+            self.tabla.insert("", "end", values=(c[0], c[1], c[2]))
 
     def mostrar_formulario(self):
         self.limpiar_pantalla()
@@ -231,8 +276,8 @@ class AppCRM(ctk.CTk):
         
         if valor_dolar > 0 and valor_uf > 0:
             # Formateamos con separador de miles para Chile
-            self.label_dolar.configure(text=f"Dólar: ${valor_dolar:,.2f}")
-            self.label_uf.configure(text=f"UF: ${valor_uf:,.2f}")
+            self.label_dolar.configure(text=f"Dólar: ${valor_dolar:,.0f}")
+            self.label_uf.configure(text=f"UF: ${valor_uf:,.0f}")
         else:
             self.label_dolar.configure(text="Dólar: Sin conexión")
             self.label_uf.configure(text="UF: Sin conexión")
@@ -272,38 +317,52 @@ class AppCRM(ctk.CTk):
         lbl_resultado = ctk.CTkLabel(ventana_calc, text="Resultados aparecerán aquí", font=("Arial", 11))
         lbl_resultado.pack(pady=20)
 
+
+        
         # --- FUNCIÓN INTERNA DE CÁLCULO Y REGISTRO ---
         def procesar_y_guardar():
-            try:
-                # Captura de datos
-                monto = float(ent_monto.get().replace(',', '.'))
-                seleccion = combo_clientes.get()
-                id_cliente = int(seleccion.split(" - ")[0]) # Extraemos el ID
-                
-                # Cálculos
-                res_dolar = monto * dolar_actual
-                res_uf = monto * uf_actual
-                
-                # Actualizamos la etiqueta visual
-                lbl_resultado.configure(text=f"💵 USD a CLP: ${res_dolar:,.0f}\n🏗️ UF a CLP: ${res_uf:,.0f}", text_color="blue")
+                try:
+                    # 1. El usuario ingresa PESOS (CLP)
+                    monto_clp = float(ent_monto.get().replace('.', '').replace(',', '.'))
+                    
+                    # 2. Cálculos: ¿Cuántas UF y USD son este monto hoy?
+                    # Valor en UF = Pesos / Valor_UF_Día
+                    res_uf = monto_clp / uf_actual
+                    # Valor en USD = Pesos / Valor_Dolar_Día
+                    res_dolar = monto_clp / dolar_actual
+                    
+                    # 3. Actualizar la etiqueta visual (Claridad total para el usuario)
+                    texto_resultado = (
+                        f"💰 Monto Base: ${monto_clp:,.0f} CLP\n"
+                        f"----------------------------------\n"
+                        f"🏗️ Equivalente en UF: {res_uf:,.2f} UF\n"
+                        f"💵 Equivalente en USD: ${res_dolar:,.2f} USD"
+                    )
+                    lbl_resultado.configure(text=texto_resultado, text_color="blue", justify="left")
 
-                # GUARDADO EN BD (Aquí usamos tu función registrar_cotizacion)
-                # Guardamos por defecto el cálculo en UF como total (puedes ajustarlo)
-                GestorClientes.registrar_cotizacion(id_cliente, monto, dolar_actual, uf_actual, res_uf)
-                
-                messagebox.showinfo("Éxito", "Cotización registrada en el historial del cliente.")
-
-                # --- LA CLAVE AQUÍ ---
-                ventana_calc.destroy() # Esto cierra la ventana automáticamente
-            except ValueError:
-                messagebox.showwarning("Atención", "Por favor, ingrese un monto numérico válido.")
-            except Exception as e:
-                messagebox.showerror("Error de BD", f"No se pudo guardar: {e}")
+                    # 4. GUARDAR EN BD
+                    # Ajustamos el orden: Guardamos el monto original (CLP) y sus equivalencias
+                    # Nota: Asegúrate de que tu función registrar_cotizacion reciba los datos en este nuevo orden lógico
+                    id_cliente = int(combo_clientes.get().split(" - ")[0])
+                    
+                    GestorClientes.registrar_cotizacion(
+                        id_cliente, 
+                        monto_clp,   # Monto Original en CLP
+                        res_dolar,   # Resultado en USD
+                        res_uf,      # Resultado en UF
+                        monto_clp    # Total final (que sigue siendo el CLP original)
+                    )
+                    
+                    messagebox.showinfo("Éxito", "Conversión registrada en el historial.")
+                    ventana_calc.destroy()
+                    
+                except ValueError:
+                    messagebox.showwarning("Atención", "Ingrese un monto en pesos válido (solo números).")
 
         # Botón Maestro
         ctk.CTkButton(ventana_calc, text="Calcular y Registrar", 
                       fg_color="#27AE60", command=procesar_y_guardar).pack(pady=10)
-
+        
         def calcular():
             try:
                 monto = float(ent_monto.get().replace(',', '.'))
@@ -325,26 +384,60 @@ class AppCRM(ctk.CTk):
     def ver_historial(self):
         ventana_hist = ctk.CTkToplevel(self)
         ventana_hist.title("Historial de Cotizaciones Realizadas")
-        ventana_hist.geometry("700x450")
+        ventana_hist.geometry("900x500") # Un poco más ancha para las columnas
         ventana_hist.after(100, lambda: ventana_hist.focus_force())
 
-        # Widget de texto para mostrar los datos
-        txt_historial = ctk.CTkTextbox(ventana_hist, width=650, height=380)
-        txt_historial.pack(padx=20, pady=20)
+        # Contenedor y Tabla
+        frame_tabla = ctk.CTkFrame(ventana_hist)
+        frame_tabla.pack(padx=20, pady=20, expand=True, fill="both")
 
-        # --- Lógica de Consulta al Backend ---
+        # Definir Columnas Actualizadas
+        columnas = ("Fecha", "Cliente", "Monto (CLP)", "Equiv. USD", "Equiv. UF")
+        tabla_hist = ttk.Treeview(frame_tabla, columns=columnas, show='headings')
+
+        # Ajustamos los anchos para que se vea impecable
+        anchos = {"Fecha": 140, "Cliente": 180, "Monto (CLP)": 120, "Equiv. USD": 100, "Equiv. UF": 100}
+        
+        for col in columnas:
+            tabla_hist.heading(col, text=col)
+            tabla_hist.column(col, width=anchos[col], anchor="center")
+
+        tabla_hist.pack(side="left", expand=True, fill="both")
+
+        # Scrollbar
+        scrolly = ttk.Scrollbar(frame_tabla, orient="vertical", command=tabla_hist.yview)
+        tabla_hist.configure(yscroll=scrolly.set)
+        scrolly.pack(side="right", fill="y")
+
+        # --- Cargar Datos ---
         try:
-            # Necesitaremos crear esta función en el backend
-            registros = GestorClientes.obtener_historial() 
-            
-            txt_historial.insert("end", f"{'FECHA':<20} | {'CLIENTE':<20} | {'MONTO':<10} | {'TOTAL CLP':<15}\n")
-            txt_historial.insert("end", "-"*75 + "\n")
-
+            registros = GestorClientes.obtener_historial()
             for r in registros:
-                # r[6] es fecha, r[7] es nombre cliente (si hacemos un JOIN)
-                txt_historial.insert("end", f"{str(r[6])[:16]:<20} | {r[7]:<20} | {r[2]:<10} | ${r[5]:,.0f}\n")
+                # r[6] Fecha | r[7] Nombre | r[2] Monto | r[3] Dolar | r[4] UF | r[5] Total
+                fecha_formato = str(r[6])[:16] # Cortamos los segundos
+                tabla_hist.insert("", "end", values=(
+                    fecha_formato, 
+                    r[7], 
+                    f"{r[2]:,.0f}", 
+                    f"${r[3]:,.0f}", 
+                    f"${r[4]:,.0f}", 
+                    f"${r[5]:,.0f}"
+                ))
+
         except Exception as e:
-            txt_historial.insert("end", f"Error al cargar historial: {e}")
+            messagebox.showerror("Error", f"No se pudo cargar el historial: {e}")
+
+    def centrar_ventana(self, ancho, alto):
+        # Obtenemos el ancho y alto de la pantalla del usuario
+        pantalla_ancho = self.winfo_screenwidth()
+        pantalla_alto = self.winfo_screenheight()
+
+        # Calculamos la coordenada X e Y para que quede al centro
+        x = (pantalla_ancho // 2) - (ancho // 2)
+        y = (pantalla_alto // 2) - (alto // 2)
+
+        # Aplicamos la geometría: "ancho x alto + x + y"
+        self.geometry(f"{ancho}x{alto}+{x}+{y}")
 
 if __name__ == "__main__":
     app = AppCRM()
